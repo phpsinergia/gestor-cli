@@ -65,7 +65,7 @@ abstract class Gestor
     {
         $aux = explode('\\', get_class($this));
         $clase = end($aux);
-        $rutaTexto = dirname(__DIR__, 4) . "/docs/$clase.txt";
+        $rutaTexto = dirname(__DIR__, 3) . "/docs/$clase.txt";
         $contenido = $this->_cargarContenidoArchivo($rutaTexto, "Ayuda no encontrada: $rutaTexto");
         $this->_imprimirSalida($contenido);
         return 0;
