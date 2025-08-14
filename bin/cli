@@ -3,6 +3,7 @@
 declare(strict_types=1);
 require dirname(__DIR__, 3) . '/vendor/autoload.php';
 use Phpsinergia\GestorCli\GestorAplicaciones;
+use Phpsinergia\GestorCli\GestorAudios;
 use Phpsinergia\GestorCli\GestorBasedatos;
 use Phpsinergia\GestorCli\GestorDocs;
 use Phpsinergia\GestorCli\GestorDominio;
@@ -25,6 +26,7 @@ $mapaGestores = [
     'aplicaciones' => GestorAplicaciones::class,
     'basedatos' => GestorBasedatos::class,
     'docs' => GestorDocs::class,
+    'audios' => GestorAudios::class,
     'dominio' => GestorDominio::class,
     'idiomas' => GestorIdiomas::class,
     'migracion' => GestorMigracion::class,
@@ -35,7 +37,7 @@ $mapaGestores = [
 // Validar
 if (!isset($mapaGestores[$gestor])) {
     echo "❌ Gestor no válido: $gestor\n";
-    echo "Uso: cli [aplicaciones|basedatos|docs|dominio|idiomas|migracion|web|xampp] comando [--opciones]\n";
+    echo "Uso: cli [aplicaciones|basedatos|docs|dominio|idiomas|migracion|web|xampp|audios] comando [--opciones]\n";
     exit(1);
 }
 

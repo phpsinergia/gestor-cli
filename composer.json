@@ -40,12 +40,6 @@
     "bin": ["bin/cli"],
     "scripts": {
       "test": "phpunit --colors=always --testdox",
-      "lint": "phpcs --standard=PSR12 src/",
-      "post-install-cmd": [
-          "php cli.php dominio version"
-      ],
-      "post-update-cmd": [
-          "php cli.php dominio version"
-      ]
+      "lint": "phpcs --standard=PSR12 src/"
     }
 }
