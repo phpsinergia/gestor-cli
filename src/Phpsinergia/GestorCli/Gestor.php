@@ -32,7 +32,10 @@ abstract class Gestor
 
     public function __construct(string $rutaRaiz, ?string $archivoCfg = null)
     {
-        if (php_sapi_name() !== 'cli') exit(1);
+        if (php_sapi_name() !== 'cli') {
+            $this->_error('Este script debe ejecutarse desde la línea de comandos');
+            exit(1);
+        }
         $this->rutaRaiz = $this->_limpiarRuta($rutaRaiz, true);
         if (empty($this->rutaRaiz)) {
             $this->_error('Ruta raiz no encontrada');
@@ -45,7 +48,7 @@ abstract class Gestor
         $this->rutaRepositorios = "$this->rutaRaiz/repositorios";
         $this->rutaApp = '';
         $this->_asignar('UNIQID', uniqid());
-        $this->_asignar('RUTA_RAIZ', $rutaRaiz);
+        $this->_asignar('RUTA_RAIZ', $this->rutaRaiz); //TODO: Revisar
         $this->rutaConfig = $this->_limpiarRuta(pathinfo($archivoCfg, PATHINFO_DIRNAME));
         $this->rutaRecursos = dirname($this->rutaConfig) . '/recursos';
         $nombreArchivo = pathinfo($archivoCfg, PATHINFO_BASENAME);
@@ -58,7 +61,18 @@ abstract class Gestor
     }
     public function ejecutarComando(?array $entrada = null): int
     {
-        return 1;
+        $parametrosValidos = ['fuente'];
+        if ($this->_procesarEntrada($entrada, $parametrosValidos) > 0) {
+            $this->_ayuda();
+            return 1;
+        }
+        return match ($this->comando) {
+            'ayuda' => $this->_ayuda(),
+            'version' => $this->_version(),
+            'cambiar_fuente' => $this->_cambiarFuente(),
+            'ver_fuente' => $this->_verFuente(),
+            default => $this->_error('Comando no válido: ' . $this->comando)
+        };
     }
 
     protected function _ayuda(): int
@@ -72,8 +86,8 @@ abstract class Gestor
     }
     protected function _version(): int
     {
-        $version = '1.0.0';
-        $this->_imprimirSalida("🖥️ CLI-PHPSINERGIA: Version $version\n©️ 2025 Rubén Araya Tagle\n✉️ rubenarayatagle@gmail.com", 'verde');
+        $version = '1.0.1';
+        $this->_imprimirSalida("🖥️ Gestor-Cli: Version $version\n©️ 2025 Rubén Araya Tagle\n✉️ rubenarayatagle@gmail.com", 'verde');
         return 0;
     }
     protected function _leer(string $clave, mixed $predeterminado = ''): mixed
@@ -502,5 +516,62 @@ abstract class Gestor
         ini_set('error_log', $this->rutaLogs . '/cli_errores.log');
         error_reporting($this->modo === 'DEBUG' ? E_ALL : E_ERROR | E_CORE_ERROR | E_COMPILE_ERROR | E_USER_ERROR);
         date_default_timezone_set($this->_leer('TIME_ZONE', 'UTC'));
+    }
+    protected function _cambiarFuente(): int
+    {
+        $fuente = strtolower($this->_param('fuente'));
+        if (!in_array($fuente, ['repo', 'pack'], true)) {
+            return $this->_mensaje("Debes indicar --fuente=repo o --fuente=pack", Mensajes::ERROR);
+        }
+        $json = "$this->rutaRaiz/composer.json";
+        $jsonOriginal = "$this->rutaRaiz/composer.original.json";
+        $repoPlantilla = "$this->rutaRecursos/plantillas/composer.repo.json";
+        $urlRepo = $this->_leer('URL_REPO');
+        if (!file_exists($json)) return $this->_mensaje("No se encontró composer.json", Mensajes::ERROR);
+        if (!file_exists($jsonOriginal)) copy($json, $jsonOriginal);
+        $contenido = json_decode(file_get_contents($json), true);
+        if (!is_array($contenido)) return $this->_mensaje("composer.json no es válido", Mensajes::ERROR);
+        if ($fuente === 'repo') {
+            if (!file_exists($repoPlantilla)) return $this->_mensaje("Falta composer.repo.json", Mensajes::ERROR);
+            $bloqueRepo = json_decode(file_get_contents($repoPlantilla), true);
+            if (!is_array($bloqueRepo)) return $this->_mensaje("El bloque de repositorios no es válido", Mensajes::ERROR);
+            array_walk($bloqueRepo, function (&$repo) use ($urlRepo) {
+                if (isset($repo['url'])) $repo['url'] = str_replace('{URL_REPO}', $urlRepo, $repo['url']);
+            });
+            $contenido['repositories'] = $bloqueRepo;
+            file_put_contents($json, json_encode($contenido, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            $this->_mensaje("Activada fuente REPO (desarrollo local)", Mensajes::AVISO);
+        }
+        if ($fuente === 'pack') {
+            if (file_exists($jsonOriginal)) {
+                copy($jsonOriginal, $json);
+                $this->_mensaje("Restaurado composer.json desde copia original", Mensajes::AVISO);
+            } else {
+                unset($contenido['repositories']);
+                file_put_contents($json, json_encode($contenido, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+                $this->_mensaje("Eliminado bloque 'repositories' del composer.json", Mensajes::AVISO);
+            }
+        }
+        // Ejecutar composer update
+        $this->_mensaje("Ejecutando: composer update phpsinergia/gestor-cli", Mensajes::INFO);
+        $salida = shell_exec("composer update phpsinergia/gestor-cli 2>&1");
+        $this->_registrar($salida, 'composer.log');
+        return $this->_mensaje("Composer ejecutado:\n$salida", Mensajes::EXITO);
+    }
+    protected function _verFuente(): int
+    {
+        $json = "$this->rutaRaiz/composer.json";
+        if (!file_exists($json)) return $this->_mensaje("No se encontró composer.json", Mensajes::ERROR);
+        $contenido = json_decode(file_get_contents($json), true);
+        if (!is_array($contenido)) return $this->_mensaje("composer.json no es válido", Mensajes::ERROR);
+        if (!isset($contenido['repositories'])) {
+            return $this->_mensaje("Fuente actual: PACK (Packagist)", Mensajes::AVISO);
+        }
+        foreach ($contenido['repositories'] as $repo) {
+            if (($repo['type'] ?? '') === 'path' && str_contains($repo['url'] ?? '', 'phpsinergia')) {
+                return $this->_mensaje("Fuente actual: REPO (repositorio local editable)", Mensajes::AVISO);
+            }
+        }
+        return $this->_mensaje("Fuente actual: PACK (sin coincidencias de repositorio)", Mensajes::AVISO);
     }
 }

@@ -7,7 +7,7 @@ final class GestorDominio extends Gestor
 {
     public function ejecutarComando(?array $entrada = null): int
     {
-        $parametrosValidos = ['ar_ftp'];
+        $parametrosValidos = ['ar_ftp', 'fuente'];
         if ($this->_procesarEntrada($entrada, $parametrosValidos) > 0) {
             $this->_ayuda();
             return 1;
@@ -17,6 +17,8 @@ final class GestorDominio extends Gestor
             'enviar_por_ftp' => $this->enviar_por_ftp(),
             'respaldar_todo' => $this->respaldar_todo(),
             'limpiar_todo' => $this->limpiar_todo(),
+			'cambiar_fuente' => $this->_cambiarFuente(),
+			'ver_fuente' => $this->_verFuente(),
             'ayuda' => $this->_ayuda(),
             'version' => $this->_version(),
             default => $this->_error('Comando no válido: ' . $this->comando)

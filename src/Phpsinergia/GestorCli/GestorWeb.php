@@ -169,7 +169,7 @@ final class GestorWeb extends Gestor
         $contenido = file_get_contents($rutaEntrada);
         $data = json_decode($contenido, true);
         if (json_last_error() !== JSON_ERROR_NONE) return $this->_mensaje("JSON inválido en: $rutaEntrada\n" . json_last_error_msg(), Mensajes::ERROR);
-        $contenidoFormateado = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        $contenidoFormateado = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); //TODO: Revisar
         $this->_eliminarArchivoSeguro($rutaSalida, false);
         file_put_contents($rutaSalida, $contenidoFormateado);
         if ($this->_validarArchivo($rutaSalida)) $this->_mensaje("JSON formateado: $rutaSalida", Mensajes::EXITO);

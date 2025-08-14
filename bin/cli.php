@@ -1,0 +1,46 @@
+#!/usr/bin/env php
+<?php // bin/cli
+declare(strict_types=1);
+require dirname(__DIR__, 3) . '/vendor/autoload.php';
+use Phpsinergia\GestorCli\GestorAplicaciones;
+use Phpsinergia\GestorCli\GestorBasedatos;
+use Phpsinergia\GestorCli\GestorDocs;
+use Phpsinergia\GestorCli\GestorDominio;
+use Phpsinergia\GestorCli\GestorIdiomas;
+use Phpsinergia\GestorCli\GestorMigracion;
+use Phpsinergia\GestorCli\GestorWeb;
+use Phpsinergia\GestorCli\GestorXampp;
+use Phpsinergia\GestorCli\Excepciones;
+
+// Configuración general
+$rutaRaiz = dirname(__DIR__);
+$archivoCfg = __DIR__ . '/config/cli.cfg';
+
+// Extraer argumentos
+array_shift($argv);
+$gestor = strtolower($argv[0] ?? '');
+
+// Mapear gestor a clase correspondiente
+$mapaGestores = [
+    'aplicaciones' => GestorAplicaciones::class,
+    'basedatos' => GestorBasedatos::class,
+    'docs' => GestorDocs::class,
+    'dominio' => GestorDominio::class,
+    'idiomas' => GestorIdiomas::class,
+    'migracion' => GestorMigracion::class,
+    'web' => GestorWeb::class,
+    'xampp' => GestorXampp::class,
+];
+
+// Validar
+if (!isset($mapaGestores[$gestor])) {
+    echo "❌ Gestor no válido: $gestor\n";
+    echo "Uso: cli [aplicaciones|basedatos|docs|dominio|idiomas|migracion|web|xampp] comando [--opciones]\n";
+    exit(1);
+}
+
+// Ejecutar gestor
+$claseGestor = $mapaGestores[$gestor];
+$instancia = new $claseGestor($rutaRaiz, $archivoCfg);
+Excepciones::inicializar();
+exit($instancia->ejecutarComando($argv));

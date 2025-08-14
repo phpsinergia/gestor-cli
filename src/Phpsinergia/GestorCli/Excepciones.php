@@ -9,7 +9,7 @@ final class Excepciones
     {
         set_exception_handler(fn($excepcion) => self::_manejarExcepcion($excepcion));
     }
-    protected static function _manejarExcepcion(Throwable $excepcion): void
+    private static function _manejarExcepcion(Throwable $excepcion): void
     {
         $estado = $excepcion->getCode();
         $mensaje = $excepcion->getMessage();

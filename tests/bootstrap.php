@@ -1,5 +1,5 @@
 <?php
-require dirname(__DIR__) . '/../../vendor/autoload.php';
+require dirname(__DIR__, 3) . '/vendor/autoload.php';
 
 // Definir variables de entorno para pruebas
 putenv("DIR_APP=testapp");
